@@ -14,7 +14,6 @@ def getTransaction(txId):
 
 def breakdownInputTxs(tx,value = None):
 
-
     inputTxs = Counter()
     ratio  = 1.0
     if value != None:
@@ -25,50 +24,47 @@ def breakdownInputTxs(tx,value = None):
 
     return inputTxs
 
-def breakdownInputs(tx,value = None):
+def getStepData(inputTxs):
 
-    if 'isCoinBase' in tx:
-        print 'coinbase!'
-        return None
+    stepTxs = Counter()
+    addresses = set()
+    coinbase  = set()
 
+    for txId in inputTxs:
 
-    inputs = dict()
-    feePerInput = convSatoshi(tx['fees'])/len(tx['vin'])
-    ratio  = 1.0
+        tx = getTransaction(txId)
+        if 'isCoinBase' in tx:
+            #print tx
+            address = tx['vout'][0]['scriptPubKey']['addresses'][0]
+            #print 'coinbaseAddr> {}'.format(address)
+            coinbase.add(address)
+            continue
 
-    if value != None:
-        ratio = float(value) / convSatoshi(tx['valueOut'])
+        for input in tx['vin']:
+            addresses.add(input['addr'])
+        stepTxs += breakdownInputTxs(tx,inputTxs[txId])
 
-
-    for input in tx['vin']:
-        inputs[(input['addr'],input['txid'] )] = int((convSatoshi(input['value']))*ratio)
-
-    return inputs
+    stepdata = {'inputTxs':stepTxs,'addresses':addresses,'coinbase':coinbase}
+    return stepdata
 
 if __name__ == '__main__':
     txId = '39173edcabb500b883e8a02f33a13b629b9b3e55b14008eb7c2d18c58060d02c'
+
+    data = {}
+    data['transactionId'] = txId
+    data['stepdata'] = []
+
     tx = getTransaction(txId)
-
     inputTxs = breakdownInputTxs(tx)
-    for step in range(2000):
 
-        stepTx = Counter()
-        addresses = set()
-        coinbase  = set()
-        for txId in inputTxs:
+    for step in range(20):
 
-            tx = getTransaction(txId)
-            if 'isCoinBase' in tx:
-                #print tx
-                address = tx['vout'][0]['scriptPubKey']['addresses'][0]
-                #print 'coinbaseAddr> {}'.format(address)
-                coinbase.add(address)
-                continue
+        stepdata  = getStepData(inputTxs)
+        coinbase  = stepdata['coinbase']
+        addresses = stepdata['addresses']
+        inputTxs  = stepdata['inputTxs']
 
-            for input in tx['vin']:
-                addresses.add(input['addr'])
-            stepTx += breakdownInputTxs(tx,inputTxs[txId])
-        inputTxs = stepTx
         print "step:{} tx:{} sumValue:{} address:{} coinbase:{}".format(step,len(inputTxs),sum(inputTxs.values()),len(addresses),len(coinbase))
+
         if len(inputTxs) == 0:
             break
