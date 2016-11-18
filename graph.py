@@ -12,28 +12,23 @@ def getTransaction(txId):
     return tx
 
 
-def breakdownInputsAddresses(tx):
+def breakdownInputTxs(tx,value = None):
 
-    inputValues = Counter()
+
+    inputTxs = Counter()
+    ratio  = 1.0
+    if value != None:
+        ratio = float(value) / convSatoshi(tx['valueOut'])
 
     for input in tx['vin']:
-        inputValues[input['addr']] += convSatoshi(input['value'])
+        inputTxs[input['txid']] += convSatoshi(input['value'] * ratio)
 
-    for output in tx['vout']:
-        #very unlely to have more than one address
-        #http://bitcoin.stackexchange.com/a/11311
-        addresses = output['scriptPubKey']['addresses']
-        inputValues[addresses[0]] -= convSatoshi(output['value'])
-
-    #http://stackoverflow.com/a/16589453/2205297
-    # get rid of negative addresses
-    #inputValues = {addr:value for addr,value in inputValues.iteritems() if value > 0}
-
-    return inputValues
+    return inputTxs
 
 def breakdownInputs(tx,value = None):
 
-    if 'coinbase' in tx['vin'][0]:
+    if 'isCoinBase' in tx:
+        print 'coinbase!'
         return None
 
 
@@ -51,7 +46,29 @@ def breakdownInputs(tx,value = None):
     return inputs
 
 if __name__ == '__main__':
-    txId = 'a0b8f0c42ccfd63c7a6ab03df848941e4a281ca15443a6120c4ed3db668f4ffa'
+    txId = '39173edcabb500b883e8a02f33a13b629b9b3e55b14008eb7c2d18c58060d02c'
     tx = getTransaction(txId)
 
-    print breakdownInputs(tx)
+    inputTxs = breakdownInputTxs(tx)
+    for step in range(2000):
+
+        stepTx = Counter()
+        addresses = set()
+        coinbase  = set()
+        for txId in inputTxs:
+
+            tx = getTransaction(txId)
+            if 'isCoinBase' in tx:
+                #print tx
+                address = tx['vout'][0]['scriptPubKey']['addresses'][0]
+                #print 'coinbaseAddr> {}'.format(address)
+                coinbase.add(address)
+                continue
+
+            for input in tx['vin']:
+                addresses.add(input['addr'])
+            stepTx += breakdownInputTxs(tx,inputTxs[txId])
+        inputTxs = stepTx
+        print "step:{} tx:{} sumValue:{} address:{} coinbase:{}".format(step,len(inputTxs),sum(inputTxs.values()),len(addresses),len(coinbase))
+        if len(inputTxs) == 0:
+            break
