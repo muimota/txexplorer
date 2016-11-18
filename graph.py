@@ -1,5 +1,6 @@
 import requests
 from collections import Counter
+import cPickle as pickle
 #devuelve
 BASE_URL = 'http://localhost:3001/insight-api/'
 
@@ -49,21 +50,37 @@ def getStepData(inputTxs):
 
 if __name__ == '__main__':
     txId = '39173edcabb500b883e8a02f33a13b629b9b3e55b14008eb7c2d18c58060d02c'
+    filename = 'tx_{}.pickle'.format(txId[-5:])
+    resetPickle = False
 
-    data = {}
-    data['transactionId'] = txId
-    data['stepdata'] = []
+    try:
+        if resetPickle:
+            raise Exception()
+
+        data = pickle.load(open(filename,'rb'))
+    except:
+        print '{} file not found!'.format(filename)
+        data = {}
+        data['transactionId'] = txId
+        data['stepdata'] = []
+
+    startStep = len(data['stepdata'])
+    print 'startStep:{}'.format(startStep)
+
 
     tx = getTransaction(txId)
     inputTxs = breakdownInputTxs(tx)
 
-    for step in range(20):
+    for step in range(startStep,5000):
 
         stepdata  = getStepData(inputTxs)
         coinbase  = stepdata['coinbase']
         addresses = stepdata['addresses']
         inputTxs  = stepdata['inputTxs']
 
+        data['stepdata'].append(stepdata)
+        pickle.dump(data,open(filename,'wb'))
+    
         print "step:{} tx:{} sumValue:{} address:{} coinbase:{}".format(step,len(inputTxs),sum(inputTxs.values()),len(addresses),len(coinbase))
 
         if len(inputTxs) == 0:
