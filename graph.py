@@ -36,9 +36,12 @@ def getStepData(inputTxs):
         tx = getTransaction(txId)
         if 'isCoinBase' in tx:
             #print tx
-            address = tx['vout'][0]['scriptPubKey']['addresses'][0]
-            #print 'coinbaseAddr> {}'.format(address)
-            coinbase.add(address)
+            for output in tx['vout']:
+                scriptPubKey = output['scriptPubKey']
+                if 'addresses' in  output['scriptPubKey']:
+                    coinbase = coinbase.union(output['scriptPubKey']['addresses'])
+                else:
+                    print 'no address found {}'.format(txId)
             continue
 
         for input in tx['vin']:
@@ -49,7 +52,7 @@ def getStepData(inputTxs):
     return stepdata
 
 if __name__ == '__main__':
-    txId = '39173edcabb500b883e8a02f33a13b629b9b3e55b14008eb7c2d18c58060d02c'
+    txId = '23fae8e2913669fd76c0f1ac5fe9a1e50b2c857cc317937edb2b2d3dfcf0b252'
     filename = 'tx_{}.pickle'.format(txId[-5:])
     resetPickle = False
 
@@ -71,7 +74,7 @@ if __name__ == '__main__':
     tx = getTransaction(txId)
     inputTxs = breakdownInputTxs(tx)
 
-    for step in range(startStep,5000):
+    for step in range(startStep,50):
 
         stepdata  = getStepData(inputTxs)
         coinbase  = stepdata['coinbase']
@@ -80,7 +83,7 @@ if __name__ == '__main__':
 
         data['stepdata'].append(stepdata)
         pickle.dump(data,open(filename,'wb'))
-    
+
         print "step:{} tx:{} sumValue:{} address:{} coinbase:{}".format(step,len(inputTxs),sum(inputTxs.values()),len(addresses),len(coinbase))
 
         if len(inputTxs) == 0:
