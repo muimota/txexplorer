@@ -35,16 +35,21 @@ def convertJson(data,f = None):
     data = data.copy()
 
     for stepdata in data['stepdata']:
-        
-        del(stepdata['inputs'])
-        for key in ('addresses','coinbases'):
-            stepdata[key] = list(stepdata[key])
+
+        inputsCounter = Counter()
+        inputs        = stepdata['inputs']
+        for key in inputs:
+            inputsCounter[key[0]] += inputs[key]
+        del(inputsCounter[None])
+        del(stepdata['addresses'])
+        stepdata['inputs']    = dict(inputsCounter)
+        stepdata['coinbases'] = list(stepdata['coinbases'])
 
     if f != None:
         json.dump(data,f)
 
 if __name__ == '__main__':
 
-    filename = 'tx_0b252'
+    filename = 'tx_94ca9'
     data = pickle.load(open(filename+'.pickle','rb'))
     convertJson(data,open(filename+'.json','wb'))
