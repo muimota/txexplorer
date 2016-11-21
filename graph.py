@@ -6,7 +6,7 @@ import cPickle as pickle
 #devuelve
 
 
-def getStepData(inputs):
+def getStepData(inputs, valueThreshold = 0):
 
     stepInputs = Counter()
     addresses  = set()
@@ -16,15 +16,14 @@ def getStepData(inputs):
 
         addressId,txId = input
         value          = inputs[input]
+        if value < valueThreshold:
+            continue
 
         tx = getTransaction(txId)
         if 'isCoinBase' in tx:
             if addressId == None:
                 continue
             coinbases.add(addressId)
-            continue
-
-        if value <= 1000:
             continue
 
         newInputs = breakdownInput(tx,addressId,value)
@@ -66,9 +65,9 @@ if __name__ == '__main__':
     startStep = len(data['stepdata'])-1
     print 'startStep:{}'.format(startStep)
 
-    for step in range(startStep,50):
+    for step in range(startStep,60):
 
-        stepdata  = getStepData(inputs)
+        stepdata  = getStepData(inputs,1000)
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
         inputs    = stepdata['inputs']

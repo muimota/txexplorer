@@ -21,6 +21,7 @@ def breakdownInput(tx,addressId=None,value = None):
     ratio  = 1.0
     if value != None:
         ratio = float(value) / convSatoshi(tx['valueOut'])
+        ratio = min(1,ratio)
 
     for input in tx['vin']:
         inputAddresesId[(input['addr'],input['txid'])] += convSatoshi(input['value'] * ratio)
