@@ -24,6 +24,9 @@ def getStepData(inputs):
             coinbases.add(addressId)
             continue
 
+        if value <= 1000:
+            continue
+
         newInputs = breakdownInput(tx,addressId,value)
         #print '>{} >{}'.format(txId,addressId)
         for newInput in newInputs:
@@ -41,7 +44,7 @@ def getStepData(inputs):
 
 if __name__ == '__main__':
 
-    txId = '23fae8e2913669fd76c0f1ac5fe9a1e50b2c857cc317937edb2b2d3dfcf0b252'
+    txId = 'd73ec21fdc7de8e9f03396ade0c2e4d01f3c9f838ddebe73e05cc48f6ed94ca9'
     filename = 'tx_{}'.format(txId[-5:])
     resetPickle = False
 
@@ -72,8 +75,8 @@ if __name__ == '__main__':
 
         data['stepdata'].append(stepdata)
         pickle.dump(data,open(filename+'.pickle','wb'))
-
-        print "step:{} inputs:{} sumValue:{} addresses:{} coinbases:{}".format(step,len(inputs),sum(inputs.values()),len(addresses),len(coinbases))
+        sumValue = sum(inputs.values())
+        print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
 
         if len(inputs) == 0:
             break
