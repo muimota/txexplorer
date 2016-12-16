@@ -16,10 +16,12 @@ def getStepData(inputs, valueThreshold = 0):
 
         addressId,txId = input
         value          = inputs[input]
+
         if value < valueThreshold:
             continue
 
         tx = getTransaction(txId)
+
         if 'isCoinBase' in tx:
             if addressId == None:
                 continue
@@ -43,7 +45,7 @@ def getStepData(inputs, valueThreshold = 0):
 
 if __name__ == '__main__':
 
-    txId = 'd73ec21fdc7de8e9f03396ade0c2e4d01f3c9f838ddebe73e05cc48f6ed94ca9'
+    txId = '0142811d0421e0bb0ac2f0ca17c0034e9072f3dbae26cb8cbb5f660970f8df6a'
     filename = 'tx_{}'.format(txId[-5:])
     resetPickle = False
 
@@ -65,20 +67,22 @@ if __name__ == '__main__':
     startStep = len(data['stepdata'])-1
     print 'startStep:{}'.format(startStep)
 
-    for step in range(startStep,60):
+    for step in range(startStep,50):
 
-        stepdata  = getStepData(inputs,1000)
+        stepdata  = getStepData(inputs,None)
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
         inputs    = stepdata['inputs']
 
         data['stepdata'].append(stepdata)
-        pickle.dump(data,open(filename+'.pickle','wb'))
+        if step % 10 == 0:
+            pickle.dump(data,open(filename+'.pickle','wb'))
         sumValue = sum(inputs.values())
-        print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
-
         if len(inputs) == 0:
             break
+
+        print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
+
 
     print 'saving...'
     convertJson(data,open(filename+'.json','wb'))

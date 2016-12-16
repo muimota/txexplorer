@@ -7,7 +7,7 @@ from collections import Counter
 BASE_URL = 'http://localhost:3001/insight-api/'
 
 def convSatoshi(btc):
-    return int(float(btc) * 100000000)
+    return long(float(btc) * 100000000)
 
 def getTransaction(txId):
     r = requests.get(BASE_URL+'tx/'+txId)
@@ -20,8 +20,7 @@ def breakdownInput(tx,addressId=None,value = None):
     inputAddresesId = Counter()
     ratio  = 1.0
     if value != None:
-        ratio = float(value) / convSatoshi(tx['valueOut'])
-        ratio = min(1,ratio)
+        ratio = float(value) / convSatoshi(tx['valueIn'])
 
     for input in tx['vin']:
         inputAddresesId[(input['addr'],input['txid'])] += convSatoshi(input['value'] * ratio)
@@ -41,8 +40,11 @@ def convertJson(data,f = None):
         inputs        = stepdata['inputs']
         for key in inputs:
             inputsCounter[key[0]] += inputs[key]
+        #delete 'unparsed data' transactions
+        #TODO:add an example of a
         del(inputsCounter[None])
         del(stepdata['addresses'])
+        #delete addresses sin this data is already stored in inputsCounter
         stepdata['inputs']    = dict(inputsCounter)
         stepdata['coinbases'] = list(stepdata['coinbases'])
 
