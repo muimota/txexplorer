@@ -7,7 +7,7 @@ import cPickle as pickle
 
 
 def getStepData(inputs, valueThreshold = 0):
-
+    """checks inputs and resturns stepdata with inputs (addr,txId)"""
     stepInputs = Counter()
     addresses  = set()
     coinbases  = set()
@@ -45,7 +45,7 @@ def getStepData(inputs, valueThreshold = 0):
 
 if __name__ == '__main__':
 
-    txId = '0142811d0421e0bb0ac2f0ca17c0034e9072f3dbae26cb8cbb5f660970f8df6a'
+    txId = '25c596c50b2ba7787eff3dd97fb7403027f6080998d0ce07a5bbf84cb3706aab'
     filename = 'tx_{}'.format(txId[-5:])
     resetPickle = False
 
@@ -66,23 +66,32 @@ if __name__ == '__main__':
 
     startStep = len(data['stepdata'])-1
     print 'startStep:{}'.format(startStep)
-
+    unsavedInputsCount = 0 #
     for step in range(startStep,50):
 
-        stepdata  = getStepData(inputs,None)
+        try:
+            stepdata  = getStepData(inputs,None)
+        except:
+            print 'error'
+            break
+
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
         inputs    = stepdata['inputs']
-
         data['stepdata'].append(stepdata)
-        if step % 10 == 0:
+
+        unsavedInputsCount += len(inputs)
+        #save after a certain number of inputs to save or when end is reached
+        if unsavedInputsCount > 10000 or len(inputs) == 0:
             pickle.dump(data,open(filename+'.pickle','wb'))
-        sumValue = sum(inputs.values())
+            unsavedInputsCount = 0
+
         if len(inputs) == 0:
             break
 
-        print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
+        sumValue = sum(inputs.values())
 
+        print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
 
     print 'saving...'
     convertJson(data,open(filename+'.json','wb'))
