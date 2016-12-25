@@ -43,9 +43,8 @@ def getStepData(inputs, valueThreshold = 0):
     stepdata = {'inputs':stepInputs,'addresses':addresses,'coinbases':coinbases}
     return stepdata
 
-if __name__ == '__main__':
+def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
-    txId = '25c596c50b2ba7787eff3dd97fb7403027f6080998d0ce07a5bbf84cb3706aab'
     filename = 'tx_{}'.format(txId[-5:])
     resetPickle = False
 
@@ -56,7 +55,6 @@ if __name__ == '__main__':
         #recalculate last 2 steps in case last is corrupted
         inputs = data['stepdata'][-1]['inputs']
     except Exception as e:
-        print e
         print '{} file not found!'.format(filename)
         data = {}
         data['transactionId'] = txId
@@ -65,12 +63,13 @@ if __name__ == '__main__':
         inputs = breakdownInput(tx)
 
     startStep = len(data['stepdata'])-1
-    print 'startStep:{}'.format(startStep)
+    if startStep > 0:
+        print 'startStep:{}'.format(startStep)
     unsavedInputsCount = 0 #
-    for step in range(startStep,50):
+    for step in range(startStep,stepCount):
 
         try:
-            stepdata  = getStepData(inputs,None)
+            stepdata  = getStepData(inputs,valueThreshold)
         except:
             print 'error'
             break
@@ -81,8 +80,8 @@ if __name__ == '__main__':
         data['stepdata'].append(stepdata)
 
         unsavedInputsCount += len(inputs)
-        #save after a certain number of inputs to save or when end is reached
-        if unsavedInputsCount > 10000 or len(inputs) == 0:
+        #save after number of unsaved inputs when end or number of stepsis reached
+        if unsavedInputsCount > 10000 or len(inputs) == 0 or step == stepCount - 1:
             pickle.dump(data,open(filename+'.pickle','wb'))
             unsavedInputsCount = 0
 
@@ -95,3 +94,22 @@ if __name__ == '__main__':
 
     print 'saving...'
     convertJson(data,open(filename+'.json','wb'))
+
+
+if __name__ == '__main__':
+    import argparse,utils
+    utils.BASE_URL = 'https://insight.bitpay.com/api/'
+    parser = argparse.ArgumentParser(description='Explores a bitcoin transaction')
+    parser.add_argument('txId', metavar='txId', type=str, help='transaction hash to explore')
+    parser.add_argument('-stepCount', metavar='steps', type=int, nargs='?', help='number of steps to explore')
+    parser.add_argument('-valueThreshold', metavar='value', type=int, nargs='?', help='value threshold of input to explore')
+
+
+    args = parser.parse_args()
+    args = vars(args)
+
+    stepCount = args['stepCount'] or  50
+    valueThreshold = args['valueThreshold'] or 0
+    txId = args['txId']
+
+    exploreTransaction(txId,stepCount,valueThreshold)
