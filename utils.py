@@ -7,16 +7,18 @@ from collections import Counter
 BASE_URL = 'http://localhost:3001/insight-api/'
 
 def convSatoshi(btc):
+    """ BTC to Satoshi Conversion """
     return long(float(btc) * 100000000)
 
 def getTransaction(txId):
+    """Get a parsed Tx from a insight API"""
     r = requests.get(BASE_URL+'tx/'+txId)
     tx = r.json()
     return tx
 
 
 def breakdownInput(tx,addressId=None,value = None):
-
+    """Breakdowns inputs in a transaction returns {addr:balance}"""
     inputAddresesId = Counter()
     ratio  = 1.0
     if value != None:
@@ -28,7 +30,7 @@ def breakdownInput(tx,addressId=None,value = None):
     return inputAddresesId
 
 def convertJson(data,f = None):
-    """ converts data so it can be stored in a json file
+    """ Converts data so it can be stored in a json file
     -- data dict with txId, stepdata
     -- f file handler to write, if no defined return json"""
 
@@ -52,7 +54,7 @@ def convertJson(data,f = None):
         json.dump(data,f)
 
 if __name__ == '__main__':
-
+    #some tests
     filename = 'tx_94ca9'
     data = pickle.load(open(filename+'.pickle','rb'))
     convertJson(data,open(filename+'.json','wb'))
