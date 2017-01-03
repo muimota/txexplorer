@@ -7,7 +7,7 @@ import cPickle as pickle
 
 
 def getStepData(inputs, valueThreshold = 0):
-    """checks inputs and resturns stepdata with inputs (addr,txId)"""
+    """checks inputs and returns stepdata with inputs (addr,txId)"""
     stepInputs = Counter()
     addresses  = set()
     coinbases  = set()
