@@ -2,32 +2,52 @@ import requests
 import cPickle as pickle
 import json
 from collections import Counter
+from bitcoin import *
 
 
-BASE_URL = 'http://localhost:3001/insight-api/'
-
-def convSatoshi(btc):
-    """ BTC to Satoshi Conversion """
-    return long(float(btc) * 100000000)
+BASE_URL = 'https://blockchain.info/rawtx/{}?format=hex'
 
 def getTransaction(txId):
     """Get a parsed Tx from a insight API"""
-    r = requests.get(BASE_URL+'tx/'+txId)
-    tx = r.json()
+    r = requests.get(BASE_URL.format(txId))
+    tx = deserialize(r.text.decode('hex'))
     return tx
 
+def getInputs(tx):
+    """returns tx inputs [(txid,outindex)]  """
+    inputs = []
+    for input in tx['ins']:
+        outpoint = input['outpoint']
+        inputs.append([outpoint['hash'].encode('hex'),outpoint['index']])
 
-def breakdownInput(tx,addressId=None,value = None):
-    """Breakdowns inputs in a transaction returns {addr:balance}"""
-    inputAddresesId = Counter()
-    ratio  = 1.0
-    if value != None:
-        ratio = float(value) / convSatoshi(tx['valueIn'])
+    return inputs
 
-    for input in tx['vin']:
-        inputAddresesId[(input['addr'],input['txid'])] += convSatoshi(input['value'] * ratio)
+def getOutputs(tx,outputIndex = None,ratio = 1.0):
+    """returns {address:value} """
+    breakdown = Counter()
+    outputs = tx['outs']
+    if outputIndex != None:
+        outputs = (tx['outs'][outputIndex],)
 
-    return inputAddresesId
+    for output in outputs:
+        script = output['script'].encode('hex')
+        value  = output['value']
+
+        #check is a valid transaction and parses address
+        if script[:6] == '76a914' and script[-4:] == '88ac':
+            address = hex_to_b58check(script[6:-4])
+            breakdown[address] += int(value * ratio)
+        #return to the wallet
+        elif script[:4] == 'a914' and script[-2:] == '87':
+            address = hex_to_b58check(script[6:-4])
+            breakdown[address] += int(value * ratio)
+        else:
+            print script
+    if outputIndex != None and outputIndex in tx['outs']:
+        breakdown = Counter()
+
+    return breakdown
+
 
 def convertJson(data,f = None):
     """ Converts data so it can be stored in a json file
@@ -54,7 +74,29 @@ def convertJson(data,f = None):
         json.dump(data,f)
 
 if __name__ == '__main__':
-    #some tests
-    filename = 'tx_94ca9'
-    data = pickle.load(open(filename+'.pickle','rb'))
-    convertJson(data,open(filename+'.json','wb'))
+    from pprint import pprint
+    txid = '2c837541dcaff50e6573af05d2964112366798865a4f8d411380dfd92168694a'
+    tx = getTransaction(txid)
+    #generate a raw transaction from the parsed
+    txraw = serialize(tx)
+    print txraw
+    pprint(tx)
+    print txhash(txraw)
+    print getOutputs(tx)
+
+    inputs = getInputs(tx)
+    for i in range(13):
+        outputs = Counter()
+        nextInputs = []
+        for input in inputs:
+            txid     = input[0]
+            outindex = input[1]
+            if txid == '0'*64:
+                print 'coinbase!'
+                continue
+            tx = getTransaction(txid)
+            nextInputs += getInputs(tx)
+            outputs += getOutputs(tx,outindex)
+        inputs = nextInputs
+        print len(outputs)
+        pprint(inputs)
