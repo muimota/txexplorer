@@ -22,10 +22,20 @@ def getInputs(tx):
 
     return inputs
 
+def getInputRatio(tx,outputIndex):
+    """returns ratio of and outIndex of the total amount in the transaction"""
+    outValue = tx['outs'][outputIndex]['value']
+    totalOutValue = 0.0
+    for output in tx['outs']:
+        totalOutValue += output['value']
+
+    return outValue/float(totalOutValue)
+
 def getOutputs(tx,outputIndex = None,ratio = 1.0):
     """returns {address:value} """
     breakdown = Counter()
     outputs = tx['outs']
+
     if outputIndex != None:
         outputs = (tx['outs'][outputIndex],)
 
@@ -43,8 +53,7 @@ def getOutputs(tx,outputIndex = None,ratio = 1.0):
             breakdown[address] += int(value * ratio)
         else:
             print script
-    if outputIndex != None and outputIndex in tx['outs']:
-        breakdown = Counter()
+            raise Error()
 
     return breakdown
 
@@ -79,24 +88,31 @@ if __name__ == '__main__':
     tx = getTransaction(txid)
     #generate a raw transaction from the parsed
     txraw = serialize(tx)
-    print txraw
-    pprint(tx)
     print txhash(txraw)
+    pprint(tx)
     print getOutputs(tx)
 
     inputs = getInputs(tx)
-    for i in range(13):
+    for i in range(5):
         outputs = Counter()
         nextInputs = []
         for input in inputs:
             txid     = input[0]
             outindex = input[1]
+
+
+            #check if a tx is a coinbase transaction
             if txid == '0'*64:
                 print 'coinbase!'
                 continue
             tx = getTransaction(txid)
+
+            ratio = getInputRatio(tx,outindex)
+            print ratio
             nextInputs += getInputs(tx)
-            outputs += getOutputs(tx,outindex)
+            outputs += getOutputs(tx,outindex,ratio)
         inputs = nextInputs
-        print len(outputs)
-        pprint(inputs)
+        print sum(outputs.itervalues())
+        pprint(dict(outputs))
+
+        #pprint(inputs)
