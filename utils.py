@@ -5,6 +5,7 @@ from collections import Counter
 from bitcoin import *
 
 
+
 BASE_URL = 'https://blockchain.info/rawtx/{}?format=hex'
 
 def getTransaction(txId):
@@ -53,7 +54,7 @@ def getOutputs(tx,outputIndex = None,ratio = 1.0):
             breakdown[address] += int(value * ratio)
         else:
             print script
-            raise Error()
+            raise Exception("fuck!")
 
     return breakdown
 
@@ -84,35 +85,65 @@ def convertJson(data,f = None):
 
 if __name__ == '__main__':
     from pprint import pprint
-    txid = '2c837541dcaff50e6573af05d2964112366798865a4f8d411380dfd92168694a'
-    tx = getTransaction(txid)
+    from TxCache import TxCache
+
+    tc  = TxCache()
+    txid = '94ab45e94c199ae145cedcdd593602beb0a62664d798b1a85685c9c5048c0fb8'
+    tx = tc.get(txid,True)
     #generate a raw transaction from the parsed
     txraw = serialize(tx)
     print txhash(txraw)
     pprint(tx)
     print getOutputs(tx)
 
-    inputs = getInputs(tx)
-    for i in range(5):
+    scaledInputs = [[1.0,getInputs(tx)]]
+
+    for i in range(15):
         outputs = Counter()
         nextInputs = []
-        for input in inputs:
-            txid     = input[0]
-            outindex = input[1]
+
+        txs = set()
+        for scaledInput in scaledInputs:
+            #print scaledInput
+            ratio,inputs = scaledInput
+            for input in inputs:
+                txid     = input[0]
+                outindex = input[1]
+
+                #check if a tx is a coinbase transaction
+                if txid != '0'*64:
+                    txs.add(txid)
+
+        print "total txs:{}".format(len(txs))
+
+        for scaledInput in scaledInputs:
+            #print scaledInput
+            ratio,inputs = scaledInput
+            for input in inputs:
+                txid     = input[0]
+                outindex = input[1]
+
+                #check if a tx is a coinbase transaction
+                if txid == '0'*64:
+                    print '>>>>>coinbase!'
+                    continue
+                while True:
+                    try:
+                        tx = tc.get(txid,True)
+                        break
+                    except Exception as e:
+                        print '>>>'
+                        print txid
 
 
-            #check if a tx is a coinbase transaction
-            if txid == '0'*64:
-                print 'coinbase!'
-                continue
-            tx = getTransaction(txid)
+                ratio *= getInputRatio(tx,outindex)
+                nextInputs.append((ratio,getInputs(tx)))
+                outputs += getOutputs(tx,outindex,ratio)
 
-            ratio = getInputRatio(tx,outindex)
-            print ratio
-            nextInputs += getInputs(tx)
-            outputs += getOutputs(tx,outindex,ratio)
-        inputs = nextInputs
-        print sum(outputs.itervalues())
+        scaledInputs = nextInputs
+            #print scaledInputs
         pprint(dict(outputs))
+        print sum(outputs.itervalues())
+        #pprint(dict(outputs))
 
         #pprint(inputs)
