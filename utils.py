@@ -1,8 +1,10 @@
 import requests
 import cPickle as pickle
 import json
+
 from collections import Counter
 from bitcoin import *
+
 
 
 
@@ -88,7 +90,7 @@ if __name__ == '__main__':
     from TxCache import TxCache
 
     tc  = TxCache()
-    txid = '94ab45e94c199ae145cedcdd593602beb0a62664d798b1a85685c9c5048c0fb8'
+    txid = '44a8eb724f95cafd132b1222ba43c610492009a1d0889f9588ecadad7e45484a'
     tx = tc.get(txid,True)
     #generate a raw transaction from the parsed
     txraw = serialize(tx)
@@ -98,9 +100,10 @@ if __name__ == '__main__':
 
     scaledInputs = [[1.0,getInputs(tx)]]
 
-    for i in range(15):
+    for i in range(20):
         outputs = Counter()
         nextInputs = []
+
 
         txs = set()
         for scaledInput in scaledInputs:
@@ -115,6 +118,8 @@ if __name__ == '__main__':
                     txs.add(txid)
 
         print "total txs:{}".format(len(txs))
+        print "step:{}".format(i)
+        tc.getMultiple(txs)
 
         for scaledInput in scaledInputs:
             #print scaledInput
@@ -132,8 +137,7 @@ if __name__ == '__main__':
                         tx = tc.get(txid,True)
                         break
                     except Exception as e:
-                        print '>>>'
-                        print txid
+                        print '>>>'+txid
 
 
                 ratio *= getInputRatio(tx,outindex)
@@ -142,8 +146,9 @@ if __name__ == '__main__':
 
         scaledInputs = nextInputs
             #print scaledInputs
-        pprint(dict(outputs))
-        print sum(outputs.itervalues())
+        #pprint(dict(outputs))
+        print "step:{} addreses:{} sum:{}".format(i,len(outputs), sum(outputs.itervalues()))
+
         #pprint(dict(outputs))
 
         #pprint(inputs)

@@ -1,9 +1,15 @@
+Some WIP of method to explore transactions ina  fast way.
+this code is GPL, al LICENSE.md is included
+
+
 
 https://blockexplorer.com/api/rawtx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d
 http://btc.blockr.io/api/v1/tx/raw/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d
 https://blockchain.info/rawtx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d?format=hex
 https://insight.bitpay.com/api/rawtx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d
 https://bitaps.com/api/raw/transaction/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d
+https://api.smartbit.com.au/v1/blockchain/tx/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d/hex
+https://chain.so/api/v2/get_tx/BTC/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d
 #te lo da en raw, sin cabeceras para el navegador
 http://api.qbit.ninja/transactions/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6210d0f8e5bf5be7df1d?format=raw
 
@@ -12,6 +18,15 @@ http://api.qbit.ninja/transactions/5756ff16e2b9f881cd15b8a7e478b4899965f87f553b6
 
 *List of bitcoin explorers*
 https://en.bitcoin.it/wiki/Category:Block_chain_browsers
+
+*dependencies
+#http://stackoverflow.com/a/36394262/2205297
+export LC_ALL=C
+pip install requests
+pip install requests[security]
+pip install grequests
+pip install bitcoin
+pip install tqdm
 
 *tests with pybitcointools*
 r = requests.get('https://blockchain.info/rawtx/1aa27a456c2f5c019ceb84d3be4b09ed89f800682ebf6fe37794be590164f8fb?format=hex')
