@@ -28,7 +28,7 @@ def getStepData(inputs, valueThreshold = 0):
             coinbases.add(addressId)
             continue
 
-        newInputs = breakdownInput(tx,addressId,value)
+        newInputs = breakdownInput(tx,value)
         #print '>{} >{}'.format(txId,addressId)
         for newInput in newInputs:
 
@@ -98,7 +98,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
 if __name__ == '__main__':
     import argparse,utils
-    utils.BASE_URL = 'https://insight.bitpay.com/api/'
+    utils.BASE_URL = 'http://localhost:3001/insight-api/'
     parser = argparse.ArgumentParser(description='Explores a bitcoin transaction')
     parser.add_argument('txId', metavar='txId', type=str, help='transaction hash to explore')
     parser.add_argument('-stepCount', metavar='steps', type=int, nargs='?', help='number of steps to explore')

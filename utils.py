@@ -17,12 +17,14 @@ def getTransaction(txId):
     return tx
 
 
-def breakdownInput(tx,addressId=None,value = None):
+def breakdownInput(tx,value = None):
     """Breakdowns inputs in a transaction returns {addr:balance}"""
     inputAddresesId = Counter()
-    ratio  = 1.0
+
     if value != None:
         ratio = float(value) / convSatoshi(tx['valueIn'])
+    else:
+        ratio  = 1.0
 
     for input in tx['vin']:
         inputAddresesId[(input['addr'],input['txid'])] += convSatoshi(input['value'] * ratio)
