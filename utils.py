@@ -2,11 +2,11 @@ import requests
 import cPickle as pickle
 import json
 from collections import Counter
-import pyjsonrpc
+from TxCache import TxCache
 from pprint import pprint
 import math
 
-client = pyjsonrpc.HttpClient(url='http://localhost:18332',username='bitcoin',password='local321')
+tc = TxCache()
 
 def convSatoshi(btc):
     """ BTC to Satoshi Conversion """
@@ -14,8 +14,7 @@ def convSatoshi(btc):
 
 def getTransaction(txId):
     """Get a parsed Tx from a insight API"""
-    tx = client.call('getrawtransaction',txId,1)
-
+    tx = tc.get(txId)
     return tx
 
 

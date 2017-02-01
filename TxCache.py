@@ -1,38 +1,23 @@
 import sqlite3
 import requests
 from random import choice
-import json
-
+import pyjsonrpc
 
 class TxCache:
 
-    def __init__(self,filename='txcache.db',url='http://localhost:3001/insight-api/tx/{}'):
+    def __init__(self):
 
-        self.conn   = sqlite3.connect(filename)
-        self.cursor = self.conn.cursor()
-        self.url    = url
-        # Create table
-        #@TODO use a blob field size should be half
-        self.cursor.execute('''CREATE TABLE if not exists txcache (id text UNIQUE, txraw text)''')
+        self.client     = pyjsonrpc.HttpClient(url='http://localhost:18332',username='bitcoin',password='local321')
+        self.addresses  = {}
 
 
-    def get(self,txid,parsed = False):
+    def get(self,txId):
 
-        self.cursor.execute('SELECT txraw from txcache WHERE id=?', (txid,))
-        txjson = self.cursor.fetchone()
+        if txId not in self.addresses:
+            tx = self.client.call('getrawtransaction',txId,1)
+            self.addresses[txId] = tx
 
-        if(txjson == None):
-            #pick random provider
-
-            txurl = self.url.format(txid)
-            r  = requests.get(txurl)
-            tx = r.json()
-            self.cursor.execute("INSERT INTO txcache(id,txraw) VALUES(?,?)",(txid,json.dumps(tx,separators=(',', ': '))))
-            self.conn.commit()
-        else:
-            tx = json.loads(txjson[0])
-
-        return tx
+        return self.addresses[txId]
 
 if __name__ == '__main__':
     from pprint import pprint
