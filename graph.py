@@ -3,40 +3,37 @@ from collections import Counter
 from utils import *
 from tqdm import tqdm
 import cPickle as pickle
+from pprint import pprint
 #devuelve
 
 
 def getStepData(inputs, valueThreshold = 0):
-    """checks inputs and returns stepdata with inputs (addr,txId)"""
+    """checks inputs and returns stepdata with inputs (vout,txid)
+    inputs[(vout,txid)] = value
+    """
     stepInputs = Counter()
     addresses  = set()
     coinbases  = set()
 
     for input in tqdm(inputs):
 
-        addressId,txId = input
-        value          = inputs[input]
+        vout,txId   = input
+        value       = inputs[input]
 
         if value < valueThreshold:
             continue
 
         tx = getTransaction(txId)
 
+        addressId = tx['vout'][vout]['scriptPubKey']['addresses'][0]
+
         if 'isCoinBase' in tx:
-            if addressId == None:
-                continue
             coinbases.add(addressId)
             continue
-
-        newInputs = breakdownInput(tx,value)
-        #print '>{} >{}'.format(txId,addressId)
-        for newInput in newInputs:
-
-            addressId,txId = newInput
-            #cases where is not parsed corectly like b039d4a15f5b8e10bcec5384da8995f134fb75e1e1da81e82d25c800e224fa16
-            if addressId == None:
-                continue
+        else:
             addresses.add(addressId)
+        newInputs = breakdownInput(tx,value)
+
         #aqui
         stepInputs += newInputs
 
@@ -62,17 +59,15 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         tx = getTransaction(txId)
         inputs = breakdownInput(tx)
 
+
     startStep = len(data['stepdata'])-1
     if startStep > 0:
         print 'startStep:{}'.format(startStep)
     unsavedInputsCount = 0 #
+
     for step in range(startStep,stepCount):
 
-        try:
-            stepdata  = getStepData(inputs,valueThreshold)
-        except:
-            print 'error'
-            break
+        stepdata  = getStepData(inputs,valueThreshold)
 
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
@@ -88,6 +83,8 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         if len(inputs) == 0:
             break
 
+        #pprint(inputs)
+
         sumValue = sum(inputs.values())
 
         print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
@@ -98,7 +95,6 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
 if __name__ == '__main__':
     import argparse,utils
-    utils.BASE_URL = 'http://localhost:3001/insight-api/'
     parser = argparse.ArgumentParser(description='Explores a bitcoin transaction')
     parser.add_argument('txId', metavar='txId', type=str, help='transaction hash to explore')
     parser.add_argument('-stepCount', metavar='steps', type=int, nargs='?', help='number of steps to explore')
