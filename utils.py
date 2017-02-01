@@ -2,10 +2,11 @@ import requests
 import cPickle as pickle
 import json
 from collections import Counter
-from TxCache import TxCache
-import pprint
+import pyjsonrpc
+from pprint import pprint
 import math
-tc = TxCache()#url='http://178.190.20.235/insight-api/')
+
+client = pyjsonrpc.HttpClient(url='http://localhost:18332',username='bitcoin',password='local321')
 
 def convSatoshi(btc):
     """ BTC to Satoshi Conversion """
@@ -13,7 +14,8 @@ def convSatoshi(btc):
 
 def getTransaction(txId):
     """Get a parsed Tx from a insight API"""
-    tx = tc.get(txId)
+    tx = client.call('getrawtransaction',txId,1)
+
     return tx
 
 
@@ -22,7 +24,9 @@ def breakdownInput(tx,value = None):
     inputAddresesId = Counter()
 
     if value != None:
-        ratio = float(value) / convSatoshi(tx['valueOut'])
+
+        valueOut = sum([x['valueSat'] for x in tx['vout']])
+        ratio = float(value) / valueOut
     else:
         ratio  = 1.0
 
@@ -59,7 +63,9 @@ def convertJson(data,f = None):
         json.dump(data,f)
 
 if __name__ == '__main__':
-    #some tests
-    filename = 'tx_94ca9'
-    data = pickle.load(open(filename+'.pickle','rb'))
-    convertJson(data,open(filename+'.json','wb'))
+
+    tx = getTransaction('457487dc5acac1775d4c4806ded2402188016b0be2c209a7c6611aa0a7facc1a')
+    pprint(tx)
+
+    inputs = breakdownInput(tx)
+    print inputs

@@ -27,11 +27,13 @@ def getStepData(inputs, valueThreshold = 0):
 
         addressId = tx['vout'][vout]['scriptPubKey']['addresses'][0]
 
-        if 'isCoinBase' in tx:
+        if 'coinbase' in tx['vin'][0]:
+            #print 'coinbase!!'
             coinbases.add(addressId)
             continue
         else:
             addresses.add(addressId)
+
         newInputs = breakdownInput(tx,value)
 
         #aqui
