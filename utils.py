@@ -3,13 +3,13 @@ import cPickle as pickle
 import json
 from collections import Counter
 from TxCache import TxCache
-
-BASE_URL = 'http://localhost:3001/insight-api/'
-tc = TxCache()
+import pprint
+import math
+tc = TxCache()#url='http://178.190.20.235/insight-api/')
 
 def convSatoshi(btc):
     """ BTC to Satoshi Conversion """
-    return long(float(btc) * 100000000)
+    return long(math.ceil(float(btc) * 100000000))
 
 def getTransaction(txId):
     """Get a parsed Tx from a insight API"""
@@ -18,11 +18,11 @@ def getTransaction(txId):
 
 
 def breakdownInput(tx,value = None):
-    """Breakdowns inputs in a transaction returns {addr:balance}"""
+    """Breakdowns inputs in a transaction returns {vout:balance}"""
     inputAddresesId = Counter()
 
     if value != None:
-        ratio = float(value) / convSatoshi(tx['valueIn'])
+        ratio = float(value) / convSatoshi(tx['valueOut'])
     else:
         ratio  = 1.0
 
@@ -30,7 +30,7 @@ def breakdownInput(tx,value = None):
         raise Exception("ratio = 0")
 
     for input in tx['vin']:
-        inputAddresesId[(input['addr'],input['txid'])] += convSatoshi(input['value'] * ratio)
+        inputAddresesId[(input['vout'],input['txid'])] += convSatoshi(input['value'] * ratio)
 
     return inputAddresesId
 
