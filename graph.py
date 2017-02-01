@@ -4,8 +4,9 @@ from utils import *
 from tqdm import tqdm
 import cPickle as pickle
 from pprint import pprint
-#devuelve
+from TxCache import TxCache
 
+tc = TxCache()
 
 def getStepData(inputs, valueThreshold = 0):
     """checks inputs and returns stepdata with inputs (vout,txid)
@@ -23,7 +24,7 @@ def getStepData(inputs, valueThreshold = 0):
         if value < valueThreshold:
             continue
 
-        tx = getTransaction(txId)
+        tx = tc.get(txId)
 
         addressId = tx['vout'][vout]['scriptPubKey']['addresses'][0]
 
@@ -58,7 +59,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         data = {}
         data['transactionId'] = txId
         data['stepdata'] = []
-        tx = getTransaction(txId)
+        tx = tc.get(txId)
         inputs = breakdownInput(tx)
 
 
@@ -68,9 +69,10 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
     unsavedInputsCount = 0 #
 
     for step in range(startStep,stepCount):
-
+	
+	tc.clear()
         stepdata  = getStepData(inputs,valueThreshold)
-
+	
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
         inputs    = stepdata['inputs']
@@ -90,7 +92,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         sumValue = sum(inputs.values())
 
         print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
-
+	print tc
     print 'saving...'
     convertJson(data,open(filename+'.json','wb'))
 
