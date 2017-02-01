@@ -6,11 +6,11 @@ import json
 
 class TxCache:
 
-    def __init__(self,filename='txcache.db'):
+    def __init__(self,filename='txcache.db',url='http://localhost:3001/insight-api/tx/{}'):
 
-        self.conn = sqlite3.connect(filename)
+        self.conn   = sqlite3.connect(filename)
         self.cursor = self.conn.cursor()
-
+        self.url    = url
         # Create table
         #@TODO use a blob field size should be half
         self.cursor.execute('''CREATE TABLE if not exists txcache (id text UNIQUE, txraw text)''')
@@ -23,8 +23,8 @@ class TxCache:
 
         if(txjson == None):
             #pick random provider
-            BASE_URL = 'http://localhost:3001/insight-api/tx/{}'
-            txurl = BASE_URL.format(txid)
+
+            txurl = self.url.format(txid)
             r  = requests.get(txurl)
             tx = r.json()
             self.cursor.execute("INSERT INTO txcache(id,txraw) VALUES(?,?)",(txid,json.dumps(tx,separators=(',', ': '))))
