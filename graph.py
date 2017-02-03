@@ -22,13 +22,13 @@ def getStepData(inputs, valueThreshold = 0):
     txIds = list(set(txIds))
     
     fileIds = {}
-    print "getting filenums:"
+    print "getting filepos:"
     for txId in tqdm(txIds):
         fileIds[txId] = tc.getFileId(txId)
 
     #pprint(fileIds)
     
-    #sort
+    #sort txid by file
     #http://stackoverflow.com/a/7340031/2205297
     txIds = sorted(fileIds,key=fileIds.get)
     #print txIds
