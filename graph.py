@@ -16,6 +16,27 @@ def getStepData(inputs, valueThreshold = 0):
     addresses  = set()
     coinbases  = set()
 
+    #get txids
+    txIds = [input[1] for input in inputs]
+    #remove duplicates
+    txIds = list(set(txIds))
+    
+    fileIds = {}
+    print "getting filenums:"
+    for txId in tqdm(txIds):
+        fileIds[txId] = tc.getFileId(txId)
+
+    #pprint(fileIds)
+    
+    #sort
+    #http://stackoverflow.com/a/7340031/2205297
+    txIds = sorted(fileIds,key=fileIds.get)
+    #print txIds
+    #cache
+    for txId in tqdm(txIds):
+        tc.get(txId)
+        
+
     for input in tqdm(inputs):
 
         vout,txId   = input
@@ -39,7 +60,7 @@ def getStepData(inputs, valueThreshold = 0):
 
         #aqui
         stepInputs += newInputs
-
+    
     stepdata = {'inputs':stepInputs,'addresses':addresses,'coinbases':coinbases}
     return stepdata
 
@@ -69,10 +90,10 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
     unsavedInputsCount = 0 #
 
     for step in range(startStep,stepCount):
-	
-	tc.clear()
+    
+        tc.clear()
         stepdata  = getStepData(inputs,valueThreshold)
-	
+    
         coinbases = stepdata['coinbases']
         addresses = stepdata['addresses']
         inputs    = stepdata['inputs']
@@ -92,7 +113,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         sumValue = sum(inputs.values())
 
         print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
-	print tc
+    print tc
     print 'saving...'
     convertJson(data,open(filename+'.json','wb'))
 
