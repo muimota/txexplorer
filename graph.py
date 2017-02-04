@@ -45,13 +45,14 @@ def getStepData(inputs, valueThreshold = 0):
 
 def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
-    filename = 'tx_{}'.format(txId[-5:])
+    data_folder = 'data/'
+    filename    = 'tx_{}'.format(txId[-5:])
     resetPickle = False
 
     try:
         if resetPickle:
             raise Exception()
-        data = pickle.load(open(filename+'.pickle','rb'))
+        data = pickle.load(open(data_folder+filename+'.pickle','rb'))
         #recalculate last 2 steps in case last is corrupted
         inputs = data['stepdata'][-1]['inputs']
     except Exception as e:
@@ -82,7 +83,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         unsavedInputsCount += len(inputs)
         #save after number of unsaved inputs when end or number of stepsis reached
         if unsavedInputsCount > 10000 or len(inputs) == 0 or step == stepCount - 1:
-            pickle.dump(data,open(filename+'.pickle','wb'))
+            pickle.dump(data,open(data_folder+filename+'.pickle','wb'))
             unsavedInputsCount = 0
 
         if len(inputs) == 0:
@@ -93,12 +94,12 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
 
     print 'saving...'
-    convertJson(data,open(filename+'.json','wb'))
+    convertJson(data,open(data_folder+filename+'.json','wb'))
 
 
 if __name__ == '__main__':
     import argparse,utils
-    utils.BASE_URL = 'https://insight.bitpay.com/api/'
+    #utils.BASE_URL = 'https://insight.bitpay.com/api/'
     parser = argparse.ArgumentParser(description='Explores a bitcoin transaction')
     parser.add_argument('txId', metavar='txId', type=str, help='transaction hash to explore')
     parser.add_argument('-stepCount', metavar='steps', type=int, nargs='?', help='number of steps to explore')
