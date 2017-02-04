@@ -1,6 +1,7 @@
 import pyjsonrpc
 from collections import Counter
-
+import bitcoin 
+import time
 class TxCache:
 
     def __init__(self):
@@ -10,16 +11,23 @@ class TxCache:
         self.reads   = Counter()
         self.blocks     = Counter()
 
-    def get(self,txId):
+    def get(self,txId,parse=0):
 
         if txId not in self.addresses:
-            tx = self.client.call('getrawtransaction',txId,1)            
-            self.blocks[tx['blockhash']] += 1
-            self.addresses[txId] = tx
+            try:
+                tx = self.client.call('getrawtransaction',txId,parse)
+            except Exception as e:
+                print txId
+                pprint(tx)
+                				
+            if parse == 0:
+                tx = bitcoin.deserialize(tx.decode('hex'))	            
+            #self.blocks[tx['blockhash']] += 1
+            #self.addresses[txId] = tx
     
         self.reads[txId] += 1
 
-        return self.addresses[txId]
+        return tx
     
     def getFileId(self,txId):
         
