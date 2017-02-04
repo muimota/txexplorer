@@ -6,6 +6,7 @@ import cPickle as pickle
 from pprint import pprint
 from TxCache import TxCache
 import bitcoin
+from multiprocessing import Pool
 
 tc = TxCache()
 
@@ -23,58 +24,72 @@ def getStepData(inputs, valueThreshold = 0):
     txIds = list(set(txIds))
     
     fileIds = {}
+    
     print "getting filepos:"
     for txId in tqdm(txIds):
-        #print txId
         fileIds[txId] = tc.getFileId(txId)
-
     
     #sort txid by file
     #http://stackoverflow.com/a/7340031/2205297
     txIds = sorted(fileIds,key=fileIds.get)
-    #print txIds
+    
     #cache
-    print 'getting raw'
-    for txId in tqdm(txIds):
-        tx = tc.get(txId,0)
-       
+    #txraws = []
+    #print 'getting raw'
+    #for txId in tqdm(txIds):
+        #tx = tc.get(txId,0)
+            #txraws.append(tx)    
+    
     
     for txId in tqdm(txIds):
-
-            
         tx = tc.get(txId,0)
-        #pprint(tx)
-        #take the first
-        for output in tx['outs'][:1]:
-
-            script = output['script'].encode('hex')
-            value  = output['value']
-
-	        #check is a valid transaction and parses address
-            if script[:6] == '76a914' and script[-4:] == '88ac':
-                addressId = bitcoin.hex_to_b58check(script[6:-4])
-            #return back to the wallet
-            elif script[:4] == 'a914' and script[-2:] == '87':
-                addressId = bitcoin.hex_to_b58check(script[6:-4])
-                #breakdown[address] += int(value * ratio)
-            else:
-                print 'no standard tx '
-	            
-            addresses.add(addressId)
-        
-        newInputs = breakdownInput(tx,None)
-         #falta anadir addressId
-        txinputs =  [txinput[1] for txinput in newInputs.keys()]
-
-        if '0'*64 in txinputs:
-            coinbases.add(addressId)
-            continue
-       
-        stepInputs += newInputs
-      
+        partialstepdata = stepTx(tx)
+        stepInputs += partialstepdata['inputs']
+        addresses = addresses.union(partialstepdata['addresses'])
+        coinbases = coinbases.union(partialstepdata['coinbases'])
+    
     stepdata = {'inputs':stepInputs,'addresses':addresses,'coinbases':coinbases}
+    
+        
     return stepdata
     
+def stepTx(tx):
+        #pprint(tx)
+        #take the first
+    stepInputs = Counter()
+    addresses  = set()
+    coinbases  = set()
+
+    for output in tx['outs'][:1]:
+
+        script = output['script'].encode('hex')
+        value  = output['value']
+
+#check is a valid transaction and parses address
+        if script[:6] == '76a914' and script[-4:] == '88ac':
+			addressId = bitcoin.hex_to_b58check(script[6:-4])
+        #return back to the wallet
+        elif script[:4] == 'a914' and script[-2:] == '87':
+			addressId = bitcoin.hex_to_b58check(script[6:-4])
+                #breakdown[address] += int(value * ratio)
+        else:
+			print 'no standard tx '
+    
+        addresses.add(addressId)
+
+    newInputs = breakdownInput(tx,None)
+     #falta anadir addressId
+    txinputs =  [txinput[1] for txinput in newInputs.keys()]
+
+    if '0'*64 in txinputs:
+            coinbases.add(addressId)
+    else:        
+            stepInputs = newInputs
+
+    stepdata = {'inputs':stepInputs,'addresses':addresses,'coinbases':coinbases}
+    return stepdata
+
+
 
 def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
