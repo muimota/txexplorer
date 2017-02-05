@@ -21,19 +21,10 @@ def getTransaction(txId):
 def breakdownInput(tx,value = None):
     """Breakdowns inputs in a transaction returns {vout:balance}"""
     inputAddresesId = Counter()
-
-    if value != None:
-
-        valueOut = sum([x['valueSat'] for x in tx['vout']])
-        ratio = float(value) / valueOut
-    else:
-        ratio  = 1.0
-
-    if ratio == 0:
-        raise Exception("ratio = 0")
-
-    for input in tx['vin']:
-        inputAddresesId[(input['vout'],input['txid'])] += convSatoshi(input['value'] * ratio)
+	
+    for input in tx['ins']:
+		outpoint = input['outpoint']
+		inputAddresesId[(outpoint['index'],outpoint['hash'].encode('hex'))] += 1
 
     return inputAddresesId
 
