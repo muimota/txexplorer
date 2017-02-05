@@ -11,16 +11,16 @@ class TxCache:
         self.reads   = Counter()
         self.blocks     = Counter()
 
-    def get(self,txId,parse=0):
+    def get(self,txId,parse=1):
 
         if txId not in self.addresses:
             try:
-                tx = self.client.call('getrawtransaction',txId,parse)
+                tx = self.client.call('getrawtransaction',txId,0)
             except Exception as e:
                 print txId
                 pprint(tx)
                 				
-            if parse == 0:
+            if parse == 1:
                 tx = bitcoin.deserialize(tx.decode('hex'))	            
             #self.blocks[tx['blockhash']] += 1
             #self.addresses[txId] = tx

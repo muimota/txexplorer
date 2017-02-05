@@ -34,32 +34,39 @@ def getStepData(inputs, valueThreshold = 0):
     txIds = sorted(fileIds,key=fileIds.get)
     
     #cache
-    #txraws = []
-    #print 'getting raw'
-    #for txId in tqdm(txIds):
-        #tx = tc.get(txId,0)
-            #txraws.append(tx)    
-    
-    
+    txraws = []
+    print 'getting raw'
     for txId in tqdm(txIds):
-        tx = tc.get(txId,0)
-        partialstepdata = stepTx(tx)
-        stepInputs += partialstepdata['inputs']
-        addresses = addresses.union(partialstepdata['addresses'])
-        coinbases = coinbases.union(partialstepdata['coinbases'])
+        txraw = tc.get(txId,0)
+        txraws.append(txraw)    
     
-    stepdata = {'inputs':stepInputs,'addresses':addresses,'coinbases':coinbases}
+    p = Pool(5)
     
+    print 'multistep'
+    partialstepdatas = p.map(stepTx,txraws)
+    print 'finished'
+    
+    print 'mergin'
+    
+    for partialstepdata in tqdm(partialstepdatas):     
+        stepInputs.update(partialstepdata['inputs'])
+           
+        addresses.update(partialstepdata['addresses'])
+        coinbases.update(partialstepdata['coinbases'])
+    
+    stepdata = {'inputs':stepInputs,'addresses':set(addresses),'coinbases':set(coinbases)}
         
     return stepdata
     
-def stepTx(tx):
+def stepTx(txraw):
         #pprint(tx)
         #take the first
     stepInputs = Counter()
     addresses  = set()
     coinbases  = set()
 
+    tx = bitcoin.deserialize(txraw.decode('hex'))
+	
     for output in tx['outs'][:1]:
 
         script = output['script'].encode('hex')
@@ -74,6 +81,7 @@ def stepTx(tx):
                 #breakdown[address] += int(value * ratio)
         else:
 			print 'no standard tx '
+			continue
     
         addresses.add(addressId)
 
@@ -109,7 +117,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         data['transactionId'] = txId
         data['stepdata'] = []
 
-        tx = tc.get(txId,0)
+        tx = tc.get(txId)
        
         pprint(tx)
         inputs = breakdownInput(tx)
