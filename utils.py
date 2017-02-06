@@ -38,15 +38,16 @@ def convertJson(data,f = None):
     for stepdata in data['stepdata']:
 
         inputsCounter = Counter()
-        inputs        = stepdata['inputs']
-        for key in inputs:
-            inputsCounter[key[0]] += inputs[key]
-        #delete 'unparsed data' transactions
-        #TODO:add an example of a
-        del(inputsCounter[None])
-        del(stepdata['addresses'])
-        #delete addresses sin this data is already stored in inputsCounter
+        
+        if 'inputs' in stepdata:
+            inputs        = stepdata['inputs']
+            for key in inputs:
+                inputsCounter[key[0]] += inputs[key]
+            #delete 'unparsed data' transactions
+            del(inputsCounter[None])
         stepdata['inputs']    = dict(inputsCounter)
+        stepdata['addresses'] = list(stepdata['addresses'])
+        #delete addresses sin this data is already stored in inputsCounter
         stepdata['coinbases'] = list(stepdata['coinbases'])
 
     if f != None:
