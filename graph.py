@@ -1,4 +1,4 @@
-
+import pyjsonrpc
 from collections import Counter
 from utils import *
 from tqdm import tqdm
@@ -6,9 +6,28 @@ import cPickle as pickle
 from pprint import pprint
 from TxCache import TxCache
 import bitcoin
-from multiprocessing import Pool
+from Queue import Queue
+import threading
 
 tc = TxCache()
+
+
+def processTx(inqueue,outqueue):
+    """grabs rawtx from rcp, and processes it """   
+    client = pyjsonrpc.HttpClient(url='http://localhost:8332',
+        username='bitcoin',password='local321')
+        
+    while True:
+    
+        txId = inqueue.get()
+        if txId == -1:
+            break
+        txraw = client.call('getrawtransaction',txId,0)
+        
+        stepdata = stepTx(txraw)
+        outqueue.put(stepdata)
+        
+    
 
 def getStepData(inputs, valueThreshold = 0):
     """checks inputs and returns stepdata with inputs (vout,txid)
@@ -33,29 +52,33 @@ def getStepData(inputs, valueThreshold = 0):
     #http://stackoverflow.com/a/7340031/2205297
     txIds = sorted(fileIds,key=fileIds.get)
     
-    #cache
-    txraws = []
-    print 'getting raw'
+    inqueue = Queue()
+    outqueue = Queue()
+    
+    for txId in txIds:
+        inqueue.put(txId)
+    
+    threadsCount = 4
+    threads = list()
+    
+    for t in range(threadsCount):
+        inqueue.put(-1) #put a end value for every process
+        t = threading.Thread(target=processTx,args=(inqueue,outqueue))
+        threads.append(t)
+        t.start()
+    
+    
     for txId in tqdm(txIds):
-        txraw = tc.get(txId,0)
-        txraws.append(txraw)    
-    
-    p = Pool(5)
-    
-    print 'multistep'
-    partialstepdatas = p.map(stepTx,txraws)
-    print 'finished'
-    
-    print 'mergin'
-    
-    for partialstepdata in tqdm(partialstepdatas):     
+        
+        partialstepdata = outqueue.get()
         stepInputs.update(partialstepdata['inputs'])
-           
         addresses.update(partialstepdata['addresses'])
         coinbases.update(partialstepdata['coinbases'])
     
-    stepdata = {'inputs':stepInputs,'addresses':set(addresses),'coinbases':set(coinbases)}
+    for t in threads:
+        t.join()
         
+    stepdata = {'inputs':stepInputs,'addresses':set(addresses),'coinbases':set(coinbases)}
     return stepdata
     
 def stepTx(txraw):
@@ -65,8 +88,10 @@ def stepTx(txraw):
     addresses  = set()
     coinbases  = set()
 
+    
     tx = bitcoin.deserialize(txraw.decode('hex'))
-	
+    
+    addressId = None
     for output in tx['outs'][:1]:
 
         script = output['script'].encode('hex')
@@ -74,14 +99,15 @@ def stepTx(txraw):
 
 #check is a valid transaction and parses address
         if script[:6] == '76a914' and script[-4:] == '88ac':
-			addressId = bitcoin.hex_to_b58check(script[6:-4])
+            addressId = bitcoin.hex_to_b58check(script[6:-4])
         #return back to the wallet
         elif script[:4] == 'a914' and script[-2:] == '87':
-			addressId = bitcoin.hex_to_b58check(script[6:-4])
+            addressId = bitcoin.hex_to_b58check(script[6:-4])
                 #breakdown[address] += int(value * ratio)
         else:
-			print 'no standard tx '
-			continue
+            txid = bitcoin.txhash(txraw.decode('hex'))
+            print 'no standard tx '
+            continue
     
         addresses.add(addressId)
 
@@ -90,7 +116,12 @@ def stepTx(txraw):
     txinputs =  [txinput[1] for txinput in newInputs.keys()]
 
     if '0'*64 in txinputs:
-            coinbases.add(addressId)
+            if addressId != None:
+                coinbases.add(addressId)
+            else:
+                txid = bitcoin.txhash(txraw.decode('hex'))
+                print 'no coinbase '
+
     else:        
             stepInputs = newInputs
 
@@ -130,7 +161,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
 
     for step in range(startStep,stepCount):
     
-        tc.clear()
+      
         stepdata  = getStepData(inputs,valueThreshold)
     
         coinbases = stepdata['coinbases']
@@ -147,8 +178,7 @@ def exploreTransaction(txId,stepCount = 50,valueThreshold = 0):
         if len(inputs) == 0:
             break
 
-        print tc
-
+      
         sumValue = sum(inputs.values())
 
         print "step:{} inputs:{} sumValue:{} (mean:{}) addresses:{} coinbases:{}".format(step,len(inputs),sumValue,sumValue/float(len(inputs.values())),len(addresses),len(coinbases))
