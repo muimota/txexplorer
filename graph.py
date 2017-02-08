@@ -84,6 +84,32 @@ def getStepData(inputs, valueThreshold = 0):
     for t in threads:
         t.join()
         
+    inqueue = Queue()
+    outqueue = Queue()
+    
+    for txId in txIds:
+        inqueue.put(txId)
+    
+    threadsCount = 4
+    threads = list()
+    
+    for t in range(threadsCount):
+        inqueue.put(-1) #put a end value for every process
+        t = threading.Thread(target=processTx,args=(inqueue,outqueue))
+        threads.append(t)
+        t.start()
+    
+    
+    for txId in tqdm(txIds):
+        
+        partialstepdata = outqueue.get()
+        stepInputs.update(partialstepdata['inputs'])
+        addresses.update(partialstepdata['addresses'])
+        coinbases.update(partialstepdata['coinbases'])
+    
+    for t in threads:
+        t.join()
+        
     stepdata = {'inputs':stepInputs,'addresses':set(addresses),'coinbases':set(coinbases)}
     return stepdata
     
@@ -98,8 +124,10 @@ def stepTx(txraw,vouts=[0]):
     tx = bitcoin.deserialize(txraw.decode('hex'))
     
     addressId = None
-    for vout in vouts:
-        output = tx['outs'][vout]
+
+    for output in tx['outs'][:1]:
+
+>>>>>>> 97d65fef8efe20b465d019f8830e4c3fc0e2788f
         script = output['script'].encode('hex')
         value  = output['value']
 
@@ -112,7 +140,9 @@ def stepTx(txraw,vouts=[0]):
                 #breakdown[address] += int(value * ratio)
         else:
             txid = bitcoin.txhash(txraw.decode('hex'))
-            #print 'no standard tx '+ txid
+
+            print 'no standard tx '
+>>>>>>> 97d65fef8efe20b465d019f8830e4c3fc0e2788f
             continue
     
         addresses.add(addressId)
@@ -126,7 +156,8 @@ def stepTx(txraw,vouts=[0]):
                 coinbases.add(addressId)
             else:
                 txid = bitcoin.txhash(txraw.decode('hex'))
-                #print 'no standart coinbase ' + txid
+
+                print 'no coinbase '
 
     else:        
             stepInputs = newInputs
